@@ -1,6 +1,7 @@
 import { LoginForm } from "@/components/auth/LoginForm";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { ClientOnly } from "@/components/shared/ClientOnly";
 
 export default async function LoginPage() {
     const session = await getSession();
@@ -9,7 +10,9 @@ export default async function LoginPage() {
     }
   return (
     <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center py-12">
-      <LoginForm />
+      <ClientOnly>
+        <LoginForm />
+      </ClientOnly>
     </div>
   );
 }

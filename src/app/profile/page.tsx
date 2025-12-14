@@ -6,6 +6,7 @@ import { ProfileForm } from "@/components/profile/ProfileForm";
 import { getUserPosts } from "@/lib/data";
 import { UserPosts } from "@/components/profile/UserPosts";
 import { Separator } from "@/components/ui/separator";
+import { ClientOnly } from "@/components/shared/ClientOnly";
 
 export default async function ProfilePage() {
   const session = await getSession();
@@ -31,7 +32,9 @@ export default async function ProfilePage() {
               <CardTitle className="text-2xl">{session.name}</CardTitle>
             </CardHeader>
             <CardContent>
-              <ProfileForm user={session} />
+              <ClientOnly>
+                <ProfileForm user={session} />
+              </ClientOnly>
             </CardContent>
           </Card>
         </div>
