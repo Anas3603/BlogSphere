@@ -1,3 +1,40 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "blog-1",
+      "description": "Abstract architectural design",
+      "imageUrl": "https://images.unsplash.com/photo-1501619438411-47314d5a0580?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhYnN0cmFjdCUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3NjU2OTgwMjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract architecture"
+    },
+    {
+      "id": "blog-2",
+      "description": "City skyline at dusk",
+      "imageUrl": "https://images.unsplash.com/photo-1534298261662-f8fdd25317db?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjaXR5JTIwc2t5bGluZXxlbnwwfHx8fDE3NjU3MjM0NjN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "city skyline"
+    },
+    {
+      "id": "blog-3",
+      "description": "Minimalist workspace with laptop",
+      "imageUrl": "https://images.unsplash.com/photo-1587522384446-64daf3e2689a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwd29ya3NwYWNlfGVufDB8fHx8MTc2NTc0NDkzNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "minimalist workspace"
+    },
+    {
+      "id": "blog-4",
+      "description": "Lush green forest path",
+      "imageUrl": "https://images.unsplash.com/photo-1623967680551-3e4694e2c9ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxmb3Jlc3QlMjBwYXRofGVufDB8fHx8MTc2NTcyNzE5M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "forest path"
+    },
+    {
+      "id": "blog-5",
+      "description": "Close up of a vintage camera",
+      "imageUrl": "https://images.unsplash.com/photo-1492671357725-4c36ca51d815?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx2aW50YWdlJTIwY2FtZXJhfGVufDB8fHx8MTc2NTczNjMwOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vintage camera"
+    },
+    {
+      "id": "blog-6",
+      "description": "Steaming cup of coffee on a wooden table",
+      "imageUrl": "https://images.unsplash.com/photo-1598908314732-07113901949e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjb2ZmZWUlMjBjdXB8ZW58MHx8fHwxNzY1NjUwNTkzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coffee cup"
+    }
+  ]
 }
