@@ -3,8 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useFormState } from "react-dom";
-import { useEffect } from "react";
+import { useActionState, useEffect } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,7 @@ const initialState = {
 };
 
 export function LoginForm() {
-  const [state, formAction] = useFormState(login, initialState);
+  const [state, formAction] = useActionState(login, initialState);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({

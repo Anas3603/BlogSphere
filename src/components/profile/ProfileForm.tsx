@@ -3,8 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useFormState } from "react-dom";
-import { useEffect } from "react";
+import { useActionState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +30,7 @@ const initialState = {
 };
 
 export function ProfileForm({ user }: { user: Omit<User, 'password'> }) {
-  const [state, formAction] = useFormState(updateProfile, initialState);
+  const [state, formAction] = useActionState(updateProfile, initialState);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
