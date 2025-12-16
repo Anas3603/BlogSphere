@@ -65,7 +65,9 @@ export function RegisterForm() {
   return (
     <Card className="w-full max-w-sm">
       <Form {...form}>
-        <form action={formAction}>
+        <form
+            action={formAction}
+        >
           <CardHeader>
             <CardTitle className="text-2xl">Register</CardTitle>
             <CardDescription>
