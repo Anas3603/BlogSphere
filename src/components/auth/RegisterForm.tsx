@@ -62,18 +62,14 @@ export function RegisterForm() {
     }
   }, [state, toast]);
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    const formData = new FormData();
-    formData.append("name", data.name);
-    formData.append("email", data.email);
-    formData.append("password", data.password);
-    formAction(formData);
-  };
-
   return (
     <Card className="w-full max-w-sm">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          action={formAction}
+          onSubmit={form.handleSubmit(() => form.trigger())}
+          className="space-y-4"
+        >
           <CardHeader>
             <CardTitle className="text-2xl">Register</CardTitle>
             <CardDescription>

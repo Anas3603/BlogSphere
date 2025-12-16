@@ -57,21 +57,13 @@ export function PostForm({ post }: { post?: Post }) {
     }
   }, [state, toast]);
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    const formData = new FormData();
-    if(data.id) formData.append("id", data.id);
-    formData.append("title", data.title);
-    formData.append("coverImage", data.coverImage);
-    formData.append("content", data.content);
-    formAction(formData);
-  }
-
   return (
     <Card>
       <CardContent className="p-6">
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(onSubmit)}
+            action={formAction}
+            onSubmit={form.handleSubmit(() => form.trigger())}
             className="space-y-6"
           >
             {post?.id && <input type="hidden" {...form.register("id")} />}

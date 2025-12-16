@@ -51,18 +51,11 @@ export function ProfileForm({ user }: { user: Omit<User, 'password'> }) {
     }
   }, [state, toast]);
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    const formData = new FormData();
-    formData.append("name", data.name);
-    // email is readonly, but we'll include it just in case
-    formData.append("email", data.email);
-    formAction(formData);
-  };
-
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        action={formAction}
+        onSubmit={form.handleSubmit(() => form.trigger())}
         className="space-y-4"
       >
         <FormField
