@@ -17,8 +17,8 @@ export async function getSession(): Promise<(Omit<User, 'password'>) | null> {
 
   if (!user) {
     // This could happen if the user was deleted but the cookie remains.
-    // Clear the invalid cookie.
-    cookieStore.delete(SESSION_COOKIE_NAME);
+    // We cannot delete the cookie here as it's not a Server Action/Route Handler.
+    // The user will simply be treated as logged out.
     return null;
   }
 
