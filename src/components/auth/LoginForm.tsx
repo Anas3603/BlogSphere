@@ -57,11 +57,18 @@ export function LoginForm() {
       });
     }
   }, [state, toast]);
+  
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    const formData = new FormData();
+    formData.append("email", data.email);
+    formData.append("password", data.password);
+    formAction(formData);
+  };
 
   return (
     <Card className="w-full max-w-sm">
       <Form {...form}>
-        <form action={formAction}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader>
             <CardTitle className="text-2xl">Login</CardTitle>
             <CardDescription>

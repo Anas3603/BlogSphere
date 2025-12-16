@@ -51,9 +51,15 @@ export function ProfileForm({ user }: { user: Omit<User, 'password'> }) {
     }
   }, [state, toast]);
 
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    const formData = new FormData();
+    formData.append("name", data.name);
+    formAction(formData);
+  };
+
   return (
     <Form {...form}>
-      <form action={formAction} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
