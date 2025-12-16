@@ -1,9 +1,11 @@
+
 import { cookies } from 'next/headers';
-import { users } from './data';
+import { getUserById } from './data';
+import type { User } from './types';
 
 const SESSION_COOKIE_NAME = 'session_token';
 
-export async function getSession() {
+export async function getSession(): Promise<(Omit<User, 'password'>) | null> {
   const cookieStore = cookies();
   const userId = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
@@ -11,13 +13,15 @@ export async function getSession() {
     return null;
   }
 
-  const user = users.find(u => u.id === userId);
+  const user = await getUserById(userId);
 
   if (!user) {
+    // This could happen if the user was deleted but the cookie remains.
+    // Clear the invalid cookie.
+    cookieStore.delete(SESSION_COOKIE_NAME);
     return null;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { password, ...userWithoutPassword } = user;
-  return userWithoutPassword;
+  // The password should already be omitted by getUserById
+  return user;
 }

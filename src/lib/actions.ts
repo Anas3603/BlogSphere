@@ -1,11 +1,14 @@
+
 "use server";
 
 import { z } from "zod";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { collection, doc, addDoc, updateDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { db } from "./firebase";
 
-import { users, posts } from "./data";
+import { getUserByEmail } from "./data";
 import { getSession } from "./auth";
 
 // --- AUTH ACTIONS ---
@@ -27,15 +30,15 @@ export async function login(prevState: any, formData: FormData) {
   }
 
   const { email, password } = validatedFields.data;
-  const user = users.find((u) => u.email === email);
+  const user = await getUserByEmail(email);
 
+  // In a real app, you would compare hashed passwords.
   if (!user || user.password !== password) {
     return {
       message: "Invalid email or password",
     };
   }
 
-  // Simulate JWT by setting a session cookie
   cookies().set("session_token", user.id, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -65,22 +68,30 @@ export async function register(prevState: any, formData: FormData) {
 
   const { name, email, password } = validatedFields.data;
 
-  if (users.find((u) => u.email === email)) {
+  const existingUser = await getUserByEmail(email);
+  if (existingUser) {
     return {
       message: "User with this email already exists",
     };
   }
 
+  // Use a write batch to ensure atomicity if you were doing more complex operations
+  const batch = writeBatch(db);
+  const newUserRef = doc(collection(db, "users"));
+
+  // In a real app, you MUST hash the password before storing it.
   const newUser = {
-    id: String(users.length + 1),
+    id: newUserRef.id,
     name,
     email,
     password,
     role: "user" as const,
     avatar: `https://i.pravatar.cc/150?u=${email}`,
   };
+  
+  batch.set(newUserRef, newUser);
+  await batch.commit();
 
-  users.push(newUser);
 
   cookies().set("session_token", newUser.id, {
     httpOnly: true,
@@ -115,14 +126,16 @@ export async function updateProfile(prevState: any, formData: FormData) {
     return { message: "Invalid name", success: false };
   }
 
-  const userIndex = users.findIndex((u) => u.id === session.id);
-  if (userIndex !== -1) {
-    users[userIndex].name = validatedFields.data.name;
+  try {
+    const userRef = doc(db, "users", session.id);
+    await updateDoc(userRef, {
+      name: validatedFields.data.name,
+    });
     revalidatePath("/profile");
     return { message: "Profile updated successfully!", success: true };
+  } catch (error) {
+    return { message: "Failed to update profile", success: false };
   }
-
-  return { message: "User not found", success: false };
 }
 
 // --- POST ACTIONS ---
@@ -144,69 +157,81 @@ export async function createOrUpdatePost(prevState: any, formData: FormData) {
   const validatedFields = postSchema.safeParse(data);
 
   if (!validatedFields.success) {
+    console.error(validatedFields.error);
     return { message: "Invalid fields", success: false };
   }
 
   const { id, title, content, coverImage } = validatedFields.data;
 
-  if (id) {
-    // Update
-    const postIndex = posts.findIndex((p) => p.id === id);
-    if (postIndex === -1) {
-      return { message: "Post not found", success: false };
+  try {
+    if (id) {
+      // Update
+      const postRef = doc(db, "posts", id);
+      const postSnap = await (await import('./data')).getPost(id); // Use getPost to check ownership
+
+      if (!postSnap) {
+        return { message: "Post not found", success: false };
+      }
+      if (postSnap.authorId !== session.id && session.role !== 'admin') {
+        return { message: "Not authorized to edit this post", success: false };
+      }
+      
+      await updateDoc(postRef, { title, content, coverImage });
+      revalidatePath(`/posts/${id}`);
+      revalidatePath("/admin/posts");
+      redirect(`/posts/${id}`);
+
+    } else {
+      // Create
+      const newPost = {
+        title,
+        content,
+        coverImage,
+        authorId: session.id,
+        authorName: session.name,
+        authorAvatar: session.avatar,
+        createdAt: new Date().toISOString(),
+        excerpt: content.substring(0, 150) + "...",
+      };
+      const docRef = await addDoc(collection(db, "posts"), newPost);
+      revalidatePath("/");
+      revalidatePath("/admin/posts");
+      redirect(`/posts/${docRef.id}`);
     }
-    if (posts[postIndex].authorId !== session.id && session.role !== 'admin') {
-      return { message: "Not authorized to edit this post", success: false };
-    }
-    posts[postIndex] = { ...posts[postIndex], title, content, coverImage };
-    revalidatePath(`/posts/${id}`);
-    revalidatePath("/admin/posts");
-    redirect(`/posts/${id}`);
-  } else {
-    // Create
-    const newPost = {
-      id: String(posts.length + 1),
-      title,
-      content,
-      coverImage,
-      authorId: session.id,
-      authorName: session.name,
-      authorAvatar: session.avatar,
-      createdAt: new Date().toISOString(),
-      excerpt: content.substring(0, 150) + "...",
-    };
-    posts.unshift(newPost);
-    revalidatePath("/");
-    revalidatePath("/admin/posts");
-    redirect(`/posts/${newPost.id}`);
+  } catch (error) {
+      console.error("Error creating/updating post:", error);
+      return { message: "Failed to save post", success: false };
   }
 }
 
 export async function deletePost(id: string) {
     const session = await getSession();
     if (!session) {
-        throw new Error("Unauthorized");
+        return { success: false, message: "Unauthorized" };
     }
 
-    const postIndex = posts.findIndex(p => p.id === id);
-    if (postIndex === -1) {
-        throw new Error("Post not found");
+    const postSnap = await (await import('./data')).getPost(id);
+    if (!postSnap) {
+        return { success: false, message: "Post not found" };
     }
 
-    const post = posts[postIndex];
-    if (post.authorId !== session.id && session.role !== 'admin') {
-        throw new Error("Not authorized to delete this post");
+    if (postSnap.authorId !== session.id && session.role !== 'admin') {
+        return { success: false, message: "Not authorized to delete this post" };
     }
 
-    posts.splice(postIndex, 1);
-    revalidatePath('/');
-    revalidatePath('/admin/posts');
-    revalidatePath(`/profile`);
-    // This action can be called from a form or client-side, 
-    // so redirect might not always be desired. We will handle redirect on the page.
-    // Let's redirect if it's a form action from post page
-    const headers = new Headers();
-    if(headers.get('next-action')) {
+    try {
+        await deleteDoc(doc(db, "posts", id));
+        revalidatePath('/');
+        revalidatePath('/admin/posts');
+        revalidatePath(`/profile`);
+        // We will handle redirect on the page if it's called from a form action.
+    } catch(error) {
+        return { success: false, message: "Failed to delete post." };
+    }
+    
+    // Check if called from a form action to decide on redirect
+    const headersList = (await import('next/headers')).headers;
+    if(headersList.get('next-action')) {
        redirect('/'); 
     }
 
@@ -221,12 +246,12 @@ export async function changeUserRole(userId: string, role: 'admin' | 'user') {
         return { message: "Unauthorized", success: false };
     }
 
-    const userIndex = users.findIndex(u => u.id === userId);
-    if (userIndex === -1) {
-        return { message: "User not found", success: false };
+    try {
+      const userRef = doc(db, "users", userId);
+      await updateDoc(userRef, { role });
+      revalidatePath('/admin/users');
+      return { message: `User role updated to ${role}`, success: true };
+    } catch (error) {
+      return { message: "User not found or failed to update.", success: false };
     }
-
-    users[userIndex].role = role;
-    revalidatePath('/admin/users');
-    return { message: `User role updated to ${role}`, success: true };
 }
