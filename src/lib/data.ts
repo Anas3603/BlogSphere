@@ -13,22 +13,22 @@ const seedData = async () => {
     console.log("No users found, seeding initial data...");
     
     const initialUsers = [
-      { id: 'admin-user', name: 'Admin User', email: 'admin@example.com', role: 'admin', avatar: 'https://i.pravatar.cc/150?u=admin', password: 'password123' },
-      { id: 'regular-user', name: 'Regular User', email: 'user@example.com', role: 'user', avatar: 'https://i.pravatar.cc/150?u=user', password: 'password123' },
+      { name: 'Admin User', email: 'admin@example.com', role: 'admin' as const, avatar: 'https://i.pravatar.cc/150?u=admin', password: 'password123' },
+      { name: 'Regular User', email: 'user@example.com', role: 'user' as const, avatar: 'https://i.pravatar.cc/150?u=user', password: 'password123' },
     ];
 
+    let adminUserId = '';
     for (const user of initialUsers) {
-        const {id, ...userData} = user;
-        await setDoc(doc(db, "users", id), userData);
+        const userRef = await addDoc(usersRef, user);
+        if (user.email === 'admin@example.com') {
+          adminUserId = userRef.id;
+        }
     }
 
-    const initialPosts: Omit<Post, 'id'>[] = [
+    const initialPosts: Omit<Post, 'id' | 'authorId' | 'authorName' | 'authorAvatar'>[] = [
         {
             title: 'The Future of Web Development',
             content: 'The future of web development is serverless, with a focus on component-based architectures and edge computing. Frameworks like Next.js are leading the way... (full content here)',
-            authorId: 'admin-user',
-            authorName: 'Admin User',
-            authorAvatar: 'https://i.pravatar.cc/150?u=admin',
             createdAt: new Date('2024-05-20T10:00:00Z').toISOString(),
             coverImage: PlaceHolderImages.find(p => p.id === 'blog-1')?.imageUrl || '',
             excerpt: 'Exploring the trends that will shape the next generation of web applications, from serverless architectures to AI-powered UIs.',
@@ -36,9 +36,6 @@ const seedData = async () => {
         {
             title: 'A Deep Dive into React Hooks',
             content: 'React Hooks have revolutionized how we write components. Let\'s explore useState, useEffect, and custom hooks in detail... (full content here)',
-            authorId: 'regular-user',
-            authorName: 'Regular User',
-            authorAvatar: 'https://i.pravatar.cc/150?u=user',
             createdAt: new Date('2024-05-18T14:30:00Z').toISOString(),
             coverImage: PlaceHolderImages.find(p => p.id === 'blog-2')?.imageUrl || '',
             excerpt: 'Learn how to leverage the full power of React Hooks to write cleaner, more reusable, and stateful functional components.',
@@ -46,17 +43,24 @@ const seedData = async () => {
         {
             title: 'Styling in the Modern Age: Tailwind CSS',
             content: 'Tailwind CSS offers a utility-first approach that can dramatically speed up your development workflow... (full content here)',
-            authorId: 'admin-user',
-            authorName: 'Admin User',
-            authorAvatar: 'https://i.pravatar.cc/150?u=admin',
             createdAt: new Date('2024-05-15T09:00:00Z').toISOString(),
             coverImage: PlaceHolderImages.find(p => p.id === 'blog-3')?.imageUrl || '',
             excerpt: 'A comprehensive guide to using Tailwind CSS for building beautiful, responsive designs without ever leaving your HTML.',
         },
     ];
-    for (const post of initialPosts) {
-      await addDoc(collection(db, 'posts'), post);
+
+    if (adminUserId) {
+        for (const post of initialPosts) {
+          const newPost = {
+            ...post,
+            authorId: adminUserId,
+            authorName: 'Admin User',
+            authorAvatar: 'https://i.pravatar.cc/150?u=admin',
+          }
+          await addDoc(collection(db, 'posts'), newPost);
+        }
     }
+    
     console.log("Seeding complete.");
   }
 };
@@ -92,7 +96,7 @@ export async function getUserPosts(authorId: string): Promise<Post[]> {
 
 
 // USERS
-export async function getUserByEmail(email: string): Promise<(User & { password?: string }) | undefined> {
+export async function getUserByEmail(email: string): Promise<(User & { id: string; password?: string }) | undefined> {
   const usersCollection = collection(db, 'users');
   const q = query(usersCollection, where('email', '==', email), limit(1));
   const userSnapshot = await getDocs(q);
@@ -101,7 +105,7 @@ export async function getUserByEmail(email: string): Promise<(User & { password?
     return undefined;
   }
   const userDoc = userSnapshot.docs[0];
-  return { id: userDoc.id, ...userDoc.data() } as (User & { password?: string });
+  return { id: userDoc.id, ...userDoc.data() } as (User & { id: string; password?: string });
 }
 
 export async function getUserById(id: string): Promise<User | undefined> {

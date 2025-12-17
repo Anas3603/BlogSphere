@@ -84,8 +84,7 @@ export async function register(prevState: any, formData: FormData) {
     avatar: `https://i.pravatar.cc/150?u=${email}`,
   };
 
-  const newUserRef = doc(collection(db, "users"));
-  await setDoc(newUserRef, newUser);
+  const newUserRef = await addDoc(collection(db, "users"), newUser);
 
   cookies().set("session_token", newUserRef.id, {
     httpOnly: true,
