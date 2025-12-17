@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useActionState, useEffect, useTransition } from "react";
+import { useEffect, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createOrUpdatePost } from "@/lib/actions";
 import type { Post } from "@/lib/types";
 import { Card, CardContent } from "../ui/card";
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -28,15 +29,10 @@ const formSchema = z.object({
   content: z.string().min(100, { message: "Content must be at least 100 characters." }),
 });
 
-const initialState = {
-  message: "",
-  success: false,
-};
-
 export function PostForm({ post }: { post?: Post }) {
-  const [state, formAction] = useActionState(createOrUpdatePost, initialState);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,26 +42,39 @@ export function PostForm({ post }: { post?: Post }) {
       coverImage: post?.coverImage || "",
       content: post?.content || "",
     },
+    mode: "onSubmit",
   });
 
+  const { formState, setError } = form;
+
   useEffect(() => {
-    if (state?.message) {
+    if (formState.errors.root?.serverError) {
       toast({
-        title: state.success ? "Success" : "Error",
-        description: state.message,
-        variant: state.success ? "default" : "destructive",
+        title: "Error",
+        description: formState.errors.root.serverError.message,
+        variant: "destructive",
       });
     }
-  }, [state, toast]);
+  }, [formState.errors.root?.serverError, toast]);
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    startTransition(() => {
-        const formData = new FormData();
-        if(data.id) formData.append("id", data.id);
-        formData.append("title", data.title);
-        formData.append("coverImage", data.coverImage);
-        formData.append("content", data.content);
-        formAction(formData);
+    startTransition(async () => {
+      const formData = new FormData();
+      if(data.id) formData.append("id", data.id);
+      formData.append("title", data.title);
+      formData.append("coverImage", data.coverImage);
+      formData.append("content", data.content);
+
+      const result = await createOrUpdatePost(null, formData);
+
+      if (!result.success) {
+        setError("root.serverError", {
+          type: "manual",
+          message: result.message || "An unexpected error occurred.",
+        });
+      } else if (result.redirect) {
+        router.push(result.redirect);
+      }
     });
   };
 
@@ -118,6 +127,9 @@ export function PostForm({ post }: { post?: Post }) {
                 </FormItem>
               )}
             />
+            {formState.errors.root?.serverError && (
+                 <FormMessage>{formState.errors.root.serverError.message}</FormMessage>
+            )}
             <div className="flex justify-end">
               <Button type="submit" disabled={isPending}>
                 {isPending ? (post ? "Updating..." : "Creating...") : (post ? "Update Post" : "Create Post")}

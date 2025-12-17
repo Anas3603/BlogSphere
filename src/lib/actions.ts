@@ -140,7 +140,14 @@ const postSchema = z.object({
   content: z.string().min(100),
 });
 
-export async function createOrUpdatePost(prevState: any, formData: FormData) {
+type PostActionResult = {
+    success: boolean;
+    message: string;
+    redirect?: string;
+}
+
+
+export async function createOrUpdatePost(prevState: any, formData: FormData): Promise<PostActionResult> {
   const session = await getSession();
   if (!session) {
     return { message: "Unauthorized", success: false };
@@ -151,7 +158,7 @@ export async function createOrUpdatePost(prevState: any, formData: FormData) {
 
   if (!validatedFields.success) {
     console.error(validatedFields.error);
-    return { message: "Invalid fields", success: false };
+    return { message: "Invalid fields. Please check your input.", success: false };
   }
 
   const { id, title, content, coverImage } = validatedFields.data;
@@ -172,7 +179,8 @@ export async function createOrUpdatePost(prevState: any, formData: FormData) {
       await updateDoc(postRef, { title, content, coverImage });
       revalidatePath(`/posts/${id}`);
       revalidatePath("/admin/posts");
-      redirect(`/posts/${id}`);
+      // Don't redirect here, let the client handle it
+      return { success: true, message: "Post updated!", redirect: `/posts/${id}` };
 
     } else {
       // Create
@@ -189,11 +197,12 @@ export async function createOrUpdatePost(prevState: any, formData: FormData) {
       const docRef = await addDoc(collection(db, "posts"), newPost);
       revalidatePath("/");
       revalidatePath("/admin/posts");
-      redirect(`/posts/${docRef.id}`);
+       // Don't redirect here, let the client handle it
+      return { success: true, message: "Post created!", redirect: `/posts/${docRef.id}` };
     }
   } catch (error) {
       console.error("Error creating/updating post:", error);
-      return { message: "Failed to save post", success: false };
+      return { message: "Failed to save post. Please try again.", success: false };
   }
 }
 
