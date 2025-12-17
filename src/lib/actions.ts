@@ -75,25 +75,18 @@ export async function register(prevState: any, formData: FormData) {
     };
   }
 
-  // Use a write batch to ensure atomicity if you were doing more complex operations
-  const batch = writeBatch(db);
-  const newUserRef = doc(collection(db, "users"));
-
   // In a real app, you MUST hash the password before storing it.
   const newUser = {
-    id: newUserRef.id,
     name,
     email,
     password,
     role: "user" as const,
     avatar: `https://i.pravatar.cc/150?u=${email}`,
   };
-  
-  batch.set(newUserRef, newUser);
-  await batch.commit();
 
+  const newUserRef = await addDoc(collection(db, "users"), newUser);
 
-  cookies().set("session_token", newUser.id, {
+  cookies().set("session_token", newUserRef.id, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 7, // One week

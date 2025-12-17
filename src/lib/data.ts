@@ -1,6 +1,6 @@
 
 import { db } from './firebase';
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, setDoc, addDoc } from 'firebase/firestore';
 import type { Post, User } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
@@ -11,22 +11,22 @@ const seedData = async () => {
   const usersSnapshot = await getDocs(query(usersRef, limit(1)));
   if (usersSnapshot.empty) {
     console.log("No users found, seeding initial data...");
-    const { setDoc } = await import("firebase/firestore");
-    const initialUsers: User[] = [
-      { id: '1', name: 'Admin User', email: 'admin@example.com', role: 'admin', avatar: 'https://i.pravatar.cc/150?u=admin' },
-      { id: '2', name: 'Regular User', email: 'user@example.com', role: 'user', avatar: 'https://i.pravatar.cc/150?u=user' },
+    
+    const initialUsers = [
+      { id: 'admin-user', name: 'Admin User', email: 'admin@example.com', role: 'admin', avatar: 'https://i.pravatar.cc/150?u=admin', password: 'password123' },
+      { id: 'regular-user', name: 'Regular User', email: 'user@example.com', role: 'user', avatar: 'https://i.pravatar.cc/150?u=user', password: 'password123' },
     ];
+
     for (const user of initialUsers) {
-        // In a real app, you would hash passwords.
-        const userWithPassword = { ...user, password: 'password123' };
-        await setDoc(doc(db, "users", user.id), userWithPassword);
+        const {id, ...userData} = user;
+        await setDoc(doc(db, "users", id), userData);
     }
 
     const initialPosts: Omit<Post, 'id'>[] = [
         {
             title: 'The Future of Web Development',
             content: 'The future of web development is serverless, with a focus on component-based architectures and edge computing. Frameworks like Next.js are leading the way... (full content here)',
-            authorId: '1',
+            authorId: 'admin-user',
             authorName: 'Admin User',
             authorAvatar: 'https://i.pravatar.cc/150?u=admin',
             createdAt: new Date('2024-05-20T10:00:00Z').toISOString(),
@@ -36,7 +36,7 @@ const seedData = async () => {
         {
             title: 'A Deep Dive into React Hooks',
             content: 'React Hooks have revolutionized how we write components. Let\'s explore useState, useEffect, and custom hooks in detail... (full content here)',
-            authorId: '2',
+            authorId: 'regular-user',
             authorName: 'Regular User',
             authorAvatar: 'https://i.pravatar.cc/150?u=user',
             createdAt: new Date('2024-05-18T14:30:00Z').toISOString(),
@@ -46,7 +46,7 @@ const seedData = async () => {
         {
             title: 'Styling in the Modern Age: Tailwind CSS',
             content: 'Tailwind CSS offers a utility-first approach that can dramatically speed up your development workflow... (full content here)',
-            authorId: '1',
+            authorId: 'admin-user',
             authorName: 'Admin User',
             authorAvatar: 'https://i.pravatar.cc/150?u=admin',
             createdAt: new Date('2024-05-15T09:00:00Z').toISOString(),
@@ -55,7 +55,6 @@ const seedData = async () => {
         },
     ];
     for (const post of initialPosts) {
-      const { addDoc } = await import("firebase/firestore");
       await addDoc(collection(db, 'posts'), post);
     }
     console.log("Seeding complete.");
