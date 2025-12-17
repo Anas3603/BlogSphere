@@ -5,10 +5,10 @@ import { z } from "zod";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { collection, doc, addDoc, updateDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, writeBatch, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
-import { getUserByEmail } from "./data";
+import { getUserByEmail, getPost as getPostData } from "./data";
 import { getSession } from "./auth";
 
 // --- AUTH ACTIONS ---
@@ -84,7 +84,8 @@ export async function register(prevState: any, formData: FormData) {
     avatar: `https://i.pravatar.cc/150?u=${email}`,
   };
 
-  const newUserRef = await addDoc(collection(db, "users"), newUser);
+  const newUserRef = doc(collection(db, "users"));
+  await setDoc(newUserRef, newUser);
 
   cookies().set("session_token", newUserRef.id, {
     httpOnly: true,
@@ -160,7 +161,7 @@ export async function createOrUpdatePost(prevState: any, formData: FormData) {
     if (id) {
       // Update
       const postRef = doc(db, "posts", id);
-      const postSnap = await (await import('./data')).getPost(id); // Use getPost to check ownership
+      const postSnap = await getPostData(id); // Use getPost to check ownership
 
       if (!postSnap) {
         return { message: "Post not found", success: false };
@@ -203,7 +204,7 @@ export async function deletePost(id: string) {
         return { success: false, message: "Unauthorized" };
     }
 
-    const postSnap = await (await import('./data')).getPost(id);
+    const postSnap = await getPostData(id);
     if (!postSnap) {
         return { success: false, message: "Post not found" };
     }
