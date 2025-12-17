@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,7 @@ const initialState = {
 
 export function ProfileForm({ user }: { user: Omit<User, 'password'> }) {
   const [state, formAction] = useActionState(updateProfile, initialState);
+  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -51,13 +52,19 @@ export function ProfileForm({ user }: { user: Omit<User, 'password'> }) {
     }
   }, [state, toast]);
 
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    startTransition(() => {
+        const formData = new FormData();
+        formData.append("name", data.name);
+        formData.append("email", data.email);
+        formAction(formData);
+    });
+  };
+
+
   return (
     <Form {...form}>
-      <form
-        action={formAction}
-        onSubmit={form.handleSubmit(() => form.trigger())}
-        className="space-y-4"
-      >
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -84,8 +91,8 @@ export function ProfileForm({ user }: { user: Omit<User, 'password'> }) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">
-          Update Profile
+        <Button type="submit" className="w-full" disabled={isPending}>
+          {isPending ? "Updating..." : "Update Profile"}
         </Button>
       </form>
     </Form>

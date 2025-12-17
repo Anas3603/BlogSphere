@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useActionState, useEffect } from "react";
 import Link from "next/link";
+import { useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ const initialState = {
 
 export function LoginForm() {
   const [state, formAction] = useActionState(login, initialState);
+  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -57,15 +59,20 @@ export function LoginForm() {
       });
     }
   }, [state, toast]);
+  
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    startTransition(() => {
+      const formData = new FormData();
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+      formAction(formData);
+    });
+  };
 
   return (
     <Card className="w-full max-w-sm">
       <Form {...form}>
-        <form
-          action={formAction}
-          onSubmit={form.handleSubmit(() => form.trigger())}
-          className="space-y-4"
-        >
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <CardHeader>
             <CardTitle className="text-2xl">Login</CardTitle>
             <CardDescription>
@@ -105,8 +112,8 @@ export function LoginForm() {
             />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button className="w-full" type="submit">
-              Sign in
+            <Button className="w-full" type="submit" disabled={isPending}>
+              {isPending ? "Signing in..." : "Sign in"}
             </Button>
             <div className="text-center text-sm">
               Don&apos;t have an account?{" "}

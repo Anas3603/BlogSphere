@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,7 @@ const initialState = {
 
 export function PostForm({ post }: { post?: Post }) {
   const [state, formAction] = useActionState(createOrUpdatePost, initialState);
+  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -57,15 +58,22 @@ export function PostForm({ post }: { post?: Post }) {
     }
   }, [state, toast]);
 
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    startTransition(() => {
+        const formData = new FormData();
+        if(data.id) formData.append("id", data.id);
+        formData.append("title", data.title);
+        formData.append("coverImage", data.coverImage);
+        formData.append("content", data.content);
+        formAction(formData);
+    });
+  };
+
   return (
     <Card>
       <CardContent className="p-6">
         <Form {...form}>
-          <form
-            action={formAction}
-            onSubmit={form.handleSubmit(() => form.trigger())}
-            className="space-y-6"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {post?.id && <input type="hidden" {...form.register("id")} />}
             <FormField
               control={form.control}
@@ -111,8 +119,8 @@ export function PostForm({ post }: { post?: Post }) {
               )}
             />
             <div className="flex justify-end">
-              <Button type="submit">
-                {post ? "Update Post" : "Create Post"}
+              <Button type="submit" disabled={isPending}>
+                {isPending ? (post ? "Updating..." : "Creating...") : (post ? "Update Post" : "Create Post")}
               </Button>
             </div>
           </form>
