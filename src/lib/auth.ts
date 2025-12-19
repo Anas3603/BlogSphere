@@ -5,8 +5,8 @@ import type { User } from './types';
 
 const SESSION_COOKIE_NAME = 'session_token';
 
-export async function getSession(): Promise<(Omit<User, 'password'>) | null> {
-  const cookieStore = cookies();
+export async function getSession(): Promise<(Omit<User, 'password'> & {id: string}) | null> {
+  const cookieStore = await cookies();
   const userId = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (!userId) {
@@ -17,7 +17,6 @@ export async function getSession(): Promise<(Omit<User, 'password'>) | null> {
 
   if (!user) {
     // This could happen if the user was deleted but the cookie remains.
-    // We cannot delete the cookie here as it's not a Server Action/Route Handler.
     // The user will simply be treated as logged out.
     return null;
   }

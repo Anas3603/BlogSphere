@@ -11,21 +11,24 @@ const seedData = async () => {
   const usersSnapshot = await getDocs(query(usersRef, limit(1)));
   if (usersSnapshot.empty) {
     console.log("No users found, seeding initial data...");
-    
-    // Use an explicit ID for the admin user for predictability in seeding posts
-    const adminUserRef = doc(db, "users", "admin-user");
-    await setDoc(adminUserRef, { name: 'Admin User', email: 'admin@example.com', role: 'admin' as const, avatar: 'https://i.pravatar.cc/150?u=admin', password: 'password123' });
-    
-    const regularUserRef = doc(db, "users", "regular-user");
-    await setDoc(regularUserRef, { name: 'Regular User', email: 'user@example.com', role: 'user' as const, avatar: 'https://i.pravatar.cc/150?u=user', password: 'password123' });
 
-    const initialPosts: Omit<Post, 'id' | 'authorId' | 'authorName' | 'authorAvatar'>[] = [
+    // Create users and let firestore generate IDs
+    const adminUserRef = await addDoc(usersRef, { name: 'Admin User', email: 'admin@example.com', role: 'admin' as const, avatar: 'https://i.pravatar.cc/150?u=admin', password: 'password123' });
+    const regularUserRef = await addDoc(usersRef, { name: 'Regular User', email: 'user@example.com', role: 'user' as const, avatar: 'https://i.pravatar.cc/150?u=user', password: 'password123' });
+    
+    const adminUser = (await getDoc(adminUserRef)).data() as User;
+    const regularUser = (await getDoc(regularUserRef)).data() as User;
+
+    const initialPosts: Omit<Post, 'id'>[] = [
         {
             title: 'The Future of Web Development',
             content: 'The future of web development is serverless, with a focus on component-based architectures and edge computing. Frameworks like Next.js are leading the way... (full content here)',
             createdAt: new Date('2024-05-20T10:00:00Z').toISOString(),
             coverImage: PlaceHolderImages.find(p => p.id === 'blog-1')?.imageUrl || '',
             excerpt: 'Exploring the trends that will shape the next generation of web applications, from serverless architectures to AI-powered UIs.',
+            authorId: adminUserRef.id,
+            authorName: adminUser.name,
+            authorAvatar: adminUser.avatar,
         },
         {
             title: 'A Deep Dive into React Hooks',
@@ -33,6 +36,9 @@ const seedData = async () => {
             createdAt: new Date('2024-05-18T14:30:00Z').toISOString(),
             coverImage: PlaceHolderImages.find(p => p.id === 'blog-2')?.imageUrl || '',
             excerpt: 'Learn how to leverage the full power of React Hooks to write cleaner, more reusable, and stateful functional components.',
+            authorId: regularUserRef.id,
+            authorName: regularUser.name,
+            authorAvatar: regularUser.avatar,
         },
         {
             title: 'Styling in the Modern Age: Tailwind CSS',
@@ -40,20 +46,14 @@ const seedData = async () => {
             createdAt: new Date('2024-05-15T09:00:00Z').toISOString(),
             coverImage: PlaceHolderImages.find(p => p.id === 'blog-3')?.imageUrl || '',
             excerpt: 'A comprehensive guide to using Tailwind CSS for building beautiful, responsive designs without ever leaving your HTML.',
+            authorId: adminUserRef.id,
+            authorName: adminUser.name,
+            authorAvatar: adminUser.avatar,
         },
     ];
 
-    const adminUserId = adminUserRef.id;
-    if (adminUserId) {
-        for (const post of initialPosts) {
-          const newPost = {
-            ...post,
-            authorId: adminUserId,
-            authorName: 'Admin User',
-            authorAvatar: 'https://i.pravatar.cc/150?u=admin',
-          }
-          await addDoc(collection(db, 'posts'), newPost);
-        }
+    for (const post of initialPosts) {
+      await addDoc(collection(db, 'posts'), post);
     }
     
     console.log("Seeding complete.");
@@ -103,14 +103,15 @@ export async function getUserByEmail(email: string): Promise<(User & { id: strin
   return { id: userDoc.id, ...userDoc.data() } as (User & { id: string; password?: string });
 }
 
-export async function getUserById(id: string): Promise<User | undefined> {
+export async function getUserById(id: string): Promise<(Omit<User, 'password'> & { id: string }) | undefined> {
   const userDoc = await getDoc(doc(db, 'users', id));
   if (!userDoc.exists()) {
     return undefined;
   }
   const { password, ...user } = userDoc.data() as User & { password?: string };
-  return { id: userDoc.id, ...user } as User;
+  return { id: userDoc.id, ...user } as (Omit<User, 'password'> & { id: string });
 }
+
 
 export async function getUsers(): Promise<Omit<User, 'password'>[]> {
     const usersCollection = collection(db, 'users');
