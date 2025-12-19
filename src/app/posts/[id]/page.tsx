@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import parse from 'html-react-parser';
 
 export default async function PostPage({ params }: { params: { id: string } }) {
   const post = await getPost(params.id);
@@ -95,7 +96,7 @@ export default async function PostPage({ params }: { params: { id: string } }) {
       </div>
 
       <div className="prose dark:prose-invert max-w-none text-lg">
-        {post.content}
+        {parse(post.content)}
       </div>
     </article>
   );

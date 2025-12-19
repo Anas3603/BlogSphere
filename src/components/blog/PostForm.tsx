@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useEffect, useTransition } from "react";
@@ -15,12 +15,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { createOrUpdatePost } from "@/lib/actions";
 import type { Post } from "@/lib/types";
 import { Card, CardContent } from "../ui/card";
 import { useRouter } from "next/navigation";
+import { TiptapEditor } from "./TiptapEditor";
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -45,7 +45,7 @@ export function PostForm({ post }: { post?: Post }) {
     mode: "onSubmit",
   });
 
-  const { formState, setError } = form;
+  const { formState, setError, control } = form;
 
   useEffect(() => {
     if (formState.errors.root?.serverError) {
@@ -73,6 +73,10 @@ export function PostForm({ post }: { post?: Post }) {
           message: result.message || "An unexpected error occurred.",
         });
       } else if (result.redirect) {
+        toast({
+          title: post ? "Post Updated!" : "Post Created!",
+          description: "Your post has been saved successfully.",
+        });
         router.push(result.redirect);
       }
     });
@@ -111,16 +115,15 @@ export function PostForm({ post }: { post?: Post }) {
               )}
             />
             <FormField
-              control={form.control}
+              control={control}
               name="content"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Content</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Write your blog post here. Markdown is supported."
-                      {...field}
-                      rows={15}
+                     <TiptapEditor
+                      content={field.value}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />
