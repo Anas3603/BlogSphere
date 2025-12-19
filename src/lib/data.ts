@@ -12,18 +12,12 @@ const seedData = async () => {
   if (usersSnapshot.empty) {
     console.log("No users found, seeding initial data...");
     
-    const initialUsers = [
-      { name: 'Admin User', email: 'admin@example.com', role: 'admin' as const, avatar: 'https://i.pravatar.cc/150?u=admin', password: 'password123' },
-      { name: 'Regular User', email: 'user@example.com', role: 'user' as const, avatar: 'https://i.pravatar.cc/150?u=user', password: 'password123' },
-    ];
-
-    let adminUserId = '';
-    for (const user of initialUsers) {
-        const userRef = await addDoc(usersRef, user);
-        if (user.email === 'admin@example.com') {
-          adminUserId = userRef.id;
-        }
-    }
+    // Use an explicit ID for the admin user for predictability in seeding posts
+    const adminUserRef = doc(db, "users", "admin-user");
+    await setDoc(adminUserRef, { name: 'Admin User', email: 'admin@example.com', role: 'admin' as const, avatar: 'https://i.pravatar.cc/150?u=admin', password: 'password123' });
+    
+    const regularUserRef = doc(db, "users", "regular-user");
+    await setDoc(regularUserRef, { name: 'Regular User', email: 'user@example.com', role: 'user' as const, avatar: 'https://i.pravatar.cc/150?u=user', password: 'password123' });
 
     const initialPosts: Omit<Post, 'id' | 'authorId' | 'authorName' | 'authorAvatar'>[] = [
         {
@@ -49,6 +43,7 @@ const seedData = async () => {
         },
     ];
 
+    const adminUserId = adminUserRef.id;
     if (adminUserId) {
         for (const post of initialPosts) {
           const newPost = {
